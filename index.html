@@ -1,0 +1,516 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#2563eb">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="アポタスク">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icon-192.png">
+<title>アポ管理タスク</title>
+<style>
+:root{--bg:#f5f7fb;--card:#fff;--text:#1b2433;--sub:#6b7686;--line:#e5e9f0;--pri:#2563eb;--pri-soft:#e8efff;--ok:#16a34a;--warn:#d97706;--ng:#dc2626;--r:14px}
+@media(prefers-color-scheme:dark){:root{--bg:#0f141c;--card:#18202b;--text:#e8edf5;--sub:#93a0b3;--line:#2a3442;--pri:#5b8cff;--pri-soft:#1e2c4d}}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+body{margin:0;background:var(--bg);color:var(--text);font:15px/1.5 -apple-system,BlinkMacSystemFont,"Hiragino Sans","Yu Gothic UI",Meiryo,sans-serif;padding-bottom:calc(72px + env(safe-area-inset-bottom))}
+header{position:sticky;top:0;z-index:5;background:var(--bg);padding:calc(12px + env(safe-area-inset-top)) 16px 8px;display:flex;align-items:center;justify-content:space-between}
+header h1{font-size:20px;margin:0}
+#sync{font-size:12px;color:var(--sub)}
+main{padding:0 16px;max-width:720px;margin:0 auto}
+nav{position:fixed;bottom:0;left:0;right:0;background:var(--card);border-top:1px solid var(--line);display:flex;padding-bottom:env(safe-area-inset-bottom);z-index:6}
+nav button{flex:1;border:0;background:none;padding:9px 0 7px;color:var(--sub);font-size:11px;display:flex;flex-direction:column;align-items:center;gap:2px;position:relative}
+nav button .ic{font-size:20px;line-height:1}
+nav button.on{color:var(--pri);font-weight:700}
+nav .dot{position:absolute;top:4px;right:calc(50% - 20px);background:var(--ng);color:#fff;border-radius:9px;font-size:10px;min-width:16px;height:16px;line-height:16px;text-align:center;padding:0 4px}
+h2{font-size:14px;color:var(--sub);margin:18px 0 8px;font-weight:700}
+.card{background:var(--card);border:1px solid var(--line);border-radius:var(--r);padding:12px 14px;margin-bottom:10px}
+.card.click{cursor:pointer}
+.row{display:flex;align-items:center;gap:10px}
+.grow{flex:1;min-width:0}
+.t{font-weight:700;word-break:break-word}
+.s{color:var(--sub);font-size:13px;word-break:break-word}
+.badge{display:inline-block;font-size:11px;padding:2px 8px;border-radius:99px;background:var(--pri-soft);color:var(--pri);font-weight:700;white-space:nowrap}
+.badge.ok{background:#dcfce7;color:var(--ok)}.badge.warn{background:#fef3c7;color:var(--warn)}.badge.ng{background:#fee2e2;color:var(--ng)}.badge.gray{background:var(--line);color:var(--sub)}
+.btn{border:0;border-radius:10px;padding:9px 14px;font-size:14px;font-weight:700;background:var(--pri);color:#fff}
+.btn.sec{background:var(--pri-soft);color:var(--pri)}.btn.ghost{background:none;color:var(--sub);border:1px solid var(--line)}.btn.ng{background:#fee2e2;color:var(--ng)}.btn.sm{padding:6px 10px;font-size:12px}
+.btn:disabled{opacity:.5}
+.fab{position:fixed;right:16px;bottom:calc(76px + env(safe-area-inset-bottom));width:56px;height:56px;border-radius:50%;border:0;background:var(--pri);color:#fff;font-size:28px;box-shadow:0 6px 16px rgba(0,0,0,.25);z-index:7}
+.seg{display:flex;background:var(--line);border-radius:10px;padding:3px;margin:8px 0}
+.seg button{flex:1;border:0;background:none;padding:7px 0;border-radius:8px;color:var(--sub);font-weight:700;font-size:13px}
+.seg button.on{background:var(--card);color:var(--text);box-shadow:0 1px 3px rgba(0,0,0,.12)}
+label{display:block;font-size:12px;color:var(--sub);margin:12px 0 4px;font-weight:700}
+input,select,textarea{width:100%;font:inherit;color:var(--text);background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:10px 12px}
+textarea{min-height:120px;resize:vertical}
+#modal{position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:20;display:none;align-items:flex-end;justify-content:center}
+#modal.open{display:flex}
+.sheet{background:var(--card);width:100%;max-width:720px;max-height:92vh;overflow:auto;border-radius:20px 20px 0 0;padding:16px 16px calc(24px + env(safe-area-inset-bottom))}
+.sheet h3{margin:0 0 4px;font-size:18px}
+.sheet .bar{display:flex;gap:8px;margin-top:16px;flex-wrap:wrap}
+.chk{width:22px;height:22px;border-radius:50%;border:2px solid var(--line);background:none;flex:none;color:#fff;font-size:13px;line-height:18px;padding:0}
+.chk.on{background:var(--ok);border-color:var(--ok)}
+.done .t{text-decoration:line-through;color:var(--sub)}
+.empty{text-align:center;color:var(--sub);padding:28px 0}
+.banner{background:#fff7ed;border:1px solid #fed7aa;color:#9a3412;border-radius:var(--r);padding:10px 14px;margin:8px 0;font-size:14px}
+.sum{background:var(--pri-soft);border-radius:12px;padding:10px 12px;white-space:pre-wrap;margin-top:8px}
+.thumb{width:56px;height:36px;object-fit:cover;border-radius:6px;border:1px solid var(--line)}
+.hint{font-size:12px;color:var(--sub);margin-top:4px}
+pre{white-space:pre-wrap;background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:10px;font-size:11px;overflow:auto}
+.prog{height:6px;background:var(--line);border-radius:3px;overflow:hidden;margin-top:8px}.prog i{display:block;height:100%;background:var(--pri);width:0}
+</style>
+</head>
+<body>
+<header><h1 id="title">ホーム</h1><span id="sync"></span></header>
+<main id="main"></main>
+<button class="fab" id="fab" data-a="fab">＋</button>
+<nav id="nav"></nav>
+<div id="modal"><div class="sheet" id="sheet"></div></div>
+
+<script>
+'use strict';
+/* ========== 基本ユーティリティ ========== */
+const $ = s => document.querySelector(s);
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
+const pad = n => String(n).padStart(2, '0');
+const ymd = d => `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+const today = () => ymd(new Date());
+const dayStart = s => { const d = new Date(s.length === 10 ? s + 'T00:00:00' : s); d.setHours(0,0,0,0); return d; };
+const daysBetween = (a, b) => Math.round((dayStart(b) - dayStart(a)) / 86400000);
+const daysSince = s => s ? daysBetween(s, today()) : null;
+const WD = ['日','月','火','水','木','金','土'];
+const fmtD = s => { if (!s) return ''; const d = new Date(s.length === 10 ? s + 'T00:00:00' : s); return `${d.getMonth()+1}/${d.getDate()}(${WD[d.getDay()]})`; };
+const fmtDT = s => s ? `${fmtD(s)} ${s.slice(11,16)}` : '';
+const rel = s => { const n = daysBetween(today(), s); return n === 0 ? '今日' : n === 1 ? '明日' : n === -1 ? '昨日' : n > 0 ? `あと${n}日` : `${-n}日超過`; };
+
+/* ========== データ ========== */
+const KEY = 'apotask-v1';
+const defaults = () => ({ appts: [], tasks: [], contacts: [], team: [],
+  settings: { name: '', project: '', sbUrl: '', sbKey: '', aiKey: '', alarmHour: 18 }, alarmed: {} });
+let S = (() => { try { const d = JSON.parse(localStorage.getItem(KEY)); return d ? Object.assign(defaults(), d, { settings: Object.assign(defaults().settings, d.settings) }) : defaults(); } catch { return defaults(); } })();
+let saveTimer;
+function save(push = true) {
+  try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) { toast('保存容量がいっぱいです'); }
+  if (push) { clearTimeout(saveTimer); saveTimer = setTimeout(syncNow, 1500); }
+}
+const byId = (arr, id) => arr.find(x => x.id === id);
+
+/* ========== 画面状態 ========== */
+let tab = 'home', apptFilter = 'seeking', ui = {};
+const TABS = [['home','ホーム','🏠'],['appts','アポ','📅'],['tasks','タスク','✅'],['contacts','連絡帳','📇'],['team','チーム','👥']];
+
+function badgeCount() {
+  const t = today();
+  return S.tasks.filter(x => !x.done && x.due && x.due <= t).length +
+         S.appts.filter(a => a.status === 'seeking' && a.deadline && a.deadline <= t).length;
+}
+function render() {
+  $('#title').textContent = TABS.find(t => t[0] === tab)[1];
+  $('#nav').innerHTML = TABS.map(([k, n, i]) => `<button class="${k===tab?'on':''}" data-a="tab" data-v="${k}"><span class="ic">${i}</span>${n}${k==='home'&&badgeCount()?`<span class="dot">${badgeCount()}</span>`:''}</button>`).join('');
+  $('#fab').style.display = ['appts','tasks','contacts'].includes(tab) ? 'block' : 'none';
+  $('#main').innerHTML = { home: vHome, appts: vAppts, tasks: vTasks, contacts: vContacts, team: vTeam }[tab]();
+}
+
+/* ========== ホーム ========== */
+function followUps() {
+  return S.contacts.map(c => ({ c, d: daysSince(lastTouch(c)) })).filter(x => x.d !== null && x.d >= 14 && !S.appts.some(a => a.contactId === x.c.id && a.status !== 'done'))
+    .sort((a, b) => b.d - a.d);
+}
+function lastTouch(c) {
+  const ds = S.appts.filter(a => a.contactId === c.id && (a.status === 'done' || a.status === 'booked')).map(a => (a.datetime || a.bookedAt || '').slice(0, 10)).filter(Boolean).filter(d => d <= today());
+  return ds.sort().pop() || c.metAt || c.createdAt;
+}
+function vHome() {
+  const t = today(), tm = ymd(new Date(Date.now() + 86400000));
+  const booked = S.appts.filter(a => a.status === 'booked' && a.datetime);
+  const todayA = booked.filter(a => a.datetime.slice(0, 10) === t).sort((a, b) => a.datetime.localeCompare(b.datetime));
+  const tomorrowA = booked.filter(a => a.datetime.slice(0, 10) === tm).sort((a, b) => a.datetime.localeCompare(b.datetime));
+  const needLog = booked.filter(a => a.datetime.slice(0, 10) < t);
+  const seek = S.appts.filter(a => a.status === 'seeking').sort((a, b) => (a.deadline || '9').localeCompare(b.deadline || '9')).slice(0, 5);
+  const tasks = S.tasks.filter(x => !x.done && (!x.due || x.due <= tm)).sort((a, b) => (a.due || '9').localeCompare(b.due || '9'));
+  const fu = followUps().slice(0, 5);
+  let h = '';
+  if ('Notification' in window && Notification.permission === 'default') h += `<div class="banner">前日アラームを通知で受け取るには、通知を許可してください。<div style="margin-top:8px"><button class="btn sm" data-a="askNotif">通知をオンにする</button></div></div>`;
+  if (tomorrowA.length) h += `<div class="banner">⏰ 明日のアポ: ${tomorrowA.map(a => `${esc(a.datetime.slice(11,16))} ${esc(a.person)}`).join(' / ')}</div>`;
+  h += `<h2>今日のアポ</h2>` + (todayA.length ? todayA.map(apptCard).join('') : '<div class="card s">今日のアポはありません</div>');
+  if (needLog.length) h += `<h2>記録がまだのアポ</h2>` + needLog.map(apptCard).join('');
+  if (seek.length) h += `<h2>アポ取り中(期限が近い順)</h2>` + seek.map(apptCard).join('');
+  h += `<h2>今日・明日までのタスク</h2>` + (tasks.length ? tasks.map(taskRow).join('') : '<div class="card s">期限が近いタスクはありません</div>');
+  if (fu.length) h += `<h2>そろそろ連絡しませんか?</h2>` + fu.map(({ c, d }) => `<div class="card click" data-a="openContact" data-v="${c.id}"><div class="row"><div class="grow"><div class="t">${esc(c.name)}</div><div class="s">${esc(c.company)}</div></div><span class="badge ${d>=30?'ng':'warn'}">最終接触から${d}日</span></div></div>`).join('');
+  return h;
+}
+
+/* ========== アポ ========== */
+const ST = { seeking: ['アポ取り中', 'warn'], booked: ['アポ確定', ''], done: ['完了', 'ok'] };
+function apptCard(a) {
+  const [lab, cls] = ST[a.status];
+  let sub = '';
+  if (a.status === 'seeking') sub = a.deadline ? `期限 ${fmtD(a.deadline)}(${rel(a.deadline)})` : '期限なし';
+  else sub = fmtDT(a.datetime) + (a.place ? ' ・ ' + esc(a.place) : '');
+  const over = a.status === 'seeking' && a.deadline && a.deadline < today();
+  const needLog = a.status === 'booked' && a.datetime && a.datetime.slice(0, 10) < today();
+  return `<div class="card click" data-a="openAppt" data-v="${a.id}"><div class="row"><div class="grow"><div class="t">${esc(a.person)}${a.company ? `<span class="s"> / ${esc(a.company)}</span>` : ''}</div><div class="s">${sub}</div>${a.purpose ? `<div class="s">目的: ${esc(a.purpose)}</div>` : ''}</div><span class="badge ${over || needLog ? 'ng' : cls}">${over ? '期限超過' : needLog ? '記録待ち' : lab}</span></div></div>`;
+}
+function vAppts() {
+  const list = S.appts.filter(a => a.status === apptFilter).sort((a, b) => apptFilter === 'seeking' ? (a.deadline || '9').localeCompare(b.deadline || '9') : apptFilter === 'booked' ? (a.datetime || '').localeCompare(b.datetime || '') : (b.datetime || '').localeCompare(a.datetime || ''));
+  const cnt = k => S.appts.filter(a => a.status === k).length;
+  return `<div class="seg">${Object.entries(ST).map(([k, v]) => `<button class="${apptFilter===k?'on':''}" data-a="apptFilter" data-v="${k}">${v[0]} ${cnt(k)}</button>`).join('')}</div>` +
+    (list.length ? list.map(apptCard).join('') : '<div class="empty">まだありません<br>右下の＋から「誰に・いつまでに」を登録しましょう</div>');
+}
+function contactOptions(sel) { return `<option value="">(連絡帳から選ぶ)</option>` + S.contacts.map(c => `<option value="${c.id}" ${c.id===sel?'selected':''}>${esc(c.name)}${c.company ? ' / ' + esc(c.company) : ''}</option>`).join(''); }
+function apptForm(id) {
+  const a = id ? byId(S.appts, id) : { status: 'seeking', deadline: ymd(new Date(Date.now() + 7 * 86400000)) };
+  openModal(`<h3>${id ? 'アポを編集' : 'アポを登録'}</h3>
+  <label>誰に</label><select id="f-contact" data-change="pickContact">${contactOptions(a.contactId)}</select>
+  <input id="f-person" placeholder="氏名(新しい相手はここに入力)" value="${esc(a.person)}" style="margin-top:6px">
+  <label>会社</label><input id="f-company" value="${esc(a.company)}">
+  <label>目的・内容</label><input id="f-purpose" value="${esc(a.purpose)}" placeholder="例: 物件の紹介打ち合わせ">
+  <label>状態</label><select id="f-status" data-change="statusChg"><option value="seeking" ${a.status==='seeking'?'selected':''}>アポ取り中</option><option value="booked" ${a.status==='booked'?'selected':''}>アポ確定</option><option value="done" ${a.status==='done'?'selected':''}>完了</option></select>
+  <div id="f-seek" style="display:${a.status==='seeking'?'block':'none'}"><label>いつまでにアポを取るか(期限)</label><input type="date" id="f-deadline" value="${esc(a.deadline)}"></div>
+  <div id="f-book" style="display:${a.status==='seeking'?'none':'block'}"><label>アポの日時</label><input type="datetime-local" id="f-datetime" value="${esc(a.datetime)}"><label>場所</label><input id="f-place" value="${esc(a.place)}"></div>
+  <div class="bar"><button class="btn" data-a="saveAppt" data-v="${id || ''}">保存</button><button class="btn ghost" data-a="close">キャンセル</button>${id ? `<button class="btn ng" data-a="delAppt" data-v="${id}">削除</button>` : ''}</div>`);
+}
+function saveApptFromForm(id) {
+  const g = i => ($('#' + i)?.value || '').trim();
+  const person = g('f-person');
+  if (!person) return toast('氏名を入力してください');
+  const status = g('f-status');
+  if (status !== 'seeking' && !g('f-datetime')) return toast('アポの日時を入力してください');
+  let a = id ? byId(S.appts, id) : { id: uid(), createdAt: today(), notes: '', summary: '', owner: S.settings.name, shared: true };
+  const prev = a.status;
+  Object.assign(a, { person, company: g('f-company'), purpose: g('f-purpose'), status, deadline: g('f-deadline'), datetime: g('f-datetime'), place: g('f-place'), contactId: g('f-contact') || a.contactId || '' });
+  if (status !== 'seeking' && !a.bookedAt) a.bookedAt = today();
+  if (status === 'seeking') { a.datetime = ''; }
+  a.contactId = ensureContact(a);
+  a.updatedAt = Date.now();
+  if (!id) S.appts.push(a);
+  delete S.alarmed[a.id];
+  save(); closeModal(); render();
+  if (prev !== 'booked' && status === 'booked') calPrompt(a.id);
+}
+function ensureContact(a) {
+  let c = a.contactId && byId(S.contacts, a.contactId);
+  if (!c) c = S.contacts.find(x => x.name === a.person && (!a.company || x.company === a.company));
+  if (!c) { c = { id: uid(), name: a.person, company: a.company, createdAt: today(), metAt: a.bookedAt || '' }; S.contacts.push(c); }
+  return c.id;
+}
+function calPrompt(id) {
+  const a = byId(S.appts, id);
+  openModal(`<h3>アポが確定しました 🎉</h3><p class="s">${esc(a.person)} ・ ${fmtDT(a.datetime)}</p><p>カレンダーに登録しますか?(前日の通知もアプリが出します)</p>
+  <div class="bar"><button class="btn" data-a="gcal" data-v="${id}">Googleカレンダーに追加</button><button class="btn sec" data-a="ics" data-v="${id}">.icsで保存</button><button class="btn ghost" data-a="close">あとで</button></div>`);
+}
+function apptDetail(id) {
+  const a = byId(S.appts, id);
+  if (!a) return;
+  const [lab] = ST[a.status];
+  const nt = a.nextTasks || [];
+  openModal(`<h3>${esc(a.person)} <span class="badge">${lab}</span></h3>
+  <div class="s">${esc(a.company)}${a.purpose ? ' ・ 目的: ' + esc(a.purpose) : ''}</div>
+  <div class="s">${a.status === 'seeking' ? '期限 ' + fmtD(a.deadline) : fmtDT(a.datetime) + (a.place ? ' ・ ' + esc(a.place) : '')}</div>
+  <div class="bar">
+   ${a.status === 'seeking' ? `<button class="btn" data-a="markBooked" data-v="${id}">アポが取れた</button>` : `<button class="btn sec" data-a="gcal" data-v="${id}">📅 Googleカレンダー</button><button class="btn sec" data-a="ics" data-v="${id}">.ics</button>`}
+   <button class="btn ghost" data-a="editAppt" data-v="${id}">編集</button></div>
+  ${a.status !== 'seeking' ? `<label>当日のメモ(話した内容・決まったこと)</label>
+  <textarea id="f-notes" placeholder="箇条書きでも文章でもOK。書いたあと「要約してタスクを出す」を押します">${esc(a.notes)}</textarea>
+  <div class="bar"><button class="btn" id="btn-sum" data-a="summarize" data-v="${id}">✨ 要約してタスクを出す</button></div>
+  <div class="hint">${S.settings.aiKey ? 'AI(Claude)で要約します' : '簡易要約モード(設定でAPIキーを入れるとAI要約になります)'}</div>` : ''}
+  ${a.summary ? `<h2>要約</h2><div class="sum">${esc(a.summary)}</div>` : ''}
+  ${nt.length ? `<h2>次のタスク候補</h2>${nt.map((t, i) => `<div class="card"><div class="row"><div class="grow">${esc(t.title)}<div class="s">期限 ${esc(fmtD(t.due))}</div></div>${t.added ? '<span class="badge ok">追加済</span>' : `<button class="btn sm" data-a="addNext" data-v="${id}:${i}">タスクに追加</button>`}</div></div>`).join('')}${nt.some(t => !t.added) ? `<button class="btn sec" data-a="addAllNext" data-v="${id}">すべて追加</button>` : ''}` : ''}
+  <div class="bar"><button class="btn ghost" data-a="close">閉じる</button>${a.status === 'booked' ? `<button class="btn sec" data-a="markDone" data-v="${id}">完了にする</button>` : ''}</div>`);
+}
+
+/* ========== 要約 ========== */
+async function summarize(id) {
+  const a = byId(S.appts, id);
+  a.notes = $('#f-notes').value.trim();
+  if (!a.notes) return toast('メモを入力してください');
+  const btn = $('#btn-sum'); btn.disabled = true; btn.textContent = '要約中…';
+  let res;
+  try { res = S.settings.aiKey ? await aiSummary(a) : localSummary(a.notes); }
+  catch (e) { toast('AI要約に失敗。簡易要約に切り替えました'); res = localSummary(a.notes); }
+  a.summary = res.summary; a.nextTasks = res.tasks.map(t => ({ title: t.title, due: t.due || ymd(new Date(Date.now() + 3 * 86400000)) }));
+  a.updatedAt = Date.now();
+  save(); apptDetail(id);
+}
+async function aiSummary(a) {
+  const prompt = `以下は「${a.person}(${a.company || '会社不明'})」との面談メモです。目的: ${a.purpose || '不明'}。今日は${today()}です。\nJSONのみで返してください: {"summary":"3行以内の簡潔な要約(改行は\\n)","tasks":[{"title":"次にやること","due":"YYYY-MM-DD"}]}\ntasksは最大6件、期限はメモの内容から妥当な日付を推定。\n\n--- メモ ---\n${a.notes}`;
+  const r = await fetch('https://api.anthropic.com/v1/messages', { method: 'POST', headers: { 'content-type': 'application/json', 'x-api-key': S.settings.aiKey, 'anthropic-version': '2023-06-01', 'anthropic-dangerous-direct-browser-access': 'true' },
+    body: JSON.stringify({ model: 'claude-haiku-4-5', max_tokens: 1000, messages: [{ role: 'user', content: prompt }] }) });
+  if (!r.ok) throw new Error(r.status);
+  const j = await r.json();
+  const txt = j.content.map(c => c.text || '').join('');
+  const o = JSON.parse(txt.slice(txt.indexOf('{'), txt.lastIndexOf('}') + 1));
+  return { summary: String(o.summary), tasks: (o.tasks || []).map(t => ({ title: String(t.title), due: /^\d{4}-\d\d-\d\d$/.test(t.due) ? t.due : '' })) };
+}
+function localSummary(text) {
+  const lines = text.split(/\n|。/).map(s => s.replace(/^[\s・\-\*●■▶︎\d\.\)）]+/, '').trim()).filter(s => s.length > 3);
+  const act = /(する|します|送る|送付|確認|提出|連絡|手配|見積|検討|準備|依頼|予約|調整|共有|訪問|作成|返信|お願い|必要|まで)/;
+  const tasks = lines.filter(l => act.test(l) && /(まで|予定|する|送|確認|提出|連絡|手配|依頼|準備|作成|必要)/.test(l)).slice(0, 6).map(l => ({ title: l.length > 40 ? l.slice(0, 40) + '…' : l, due: guessDue(l) }));
+  const summary = lines.slice(0, 3).map(l => '・' + (l.length > 50 ? l.slice(0, 50) + '…' : l)).join('\n');
+  return { summary, tasks };
+}
+function guessDue(s) {
+  const now = new Date(); let m;
+  if ((m = s.match(/(\d{1,2})\/(\d{1,2})/)) || (m = s.match(/(\d{1,2})月(\d{1,2})日/))) { let d = new Date(now.getFullYear(), m[1] - 1, m[2]); if (d < dayStart(today())) d.setFullYear(d.getFullYear() + 1); return ymd(d); }
+  if (/今日|本日/.test(s)) return today();
+  if (/明日/.test(s)) return ymd(new Date(Date.now() + 86400000));
+  if (/来週/.test(s)) return ymd(new Date(Date.now() + 7 * 86400000));
+  if (/今週/.test(s)) return ymd(new Date(Date.now() + 4 * 86400000));
+  return '';
+}
+
+/* ========== カレンダー ========== */
+const stamp = (s, addMin = 0) => { const d = new Date(s); d.setMinutes(d.getMinutes() + addMin); return `${d.getFullYear()}${pad(d.getMonth()+1)}${pad(d.getDate())}T${pad(d.getHours())}${pad(d.getMinutes())}00`; };
+function gcalUrl(a) {
+  const q = new URLSearchParams({ action: 'TEMPLATE', text: `【アポ】${a.person}${a.company ? '(' + a.company + ')' : ''}`, dates: `${stamp(a.datetime)}/${stamp(a.datetime, 60)}`, ctz: 'Asia/Tokyo', details: a.purpose ? '目的: ' + a.purpose : '', location: a.place || '' });
+  return 'https://calendar.google.com/calendar/render?' + q;
+}
+function makeIcs(a) {
+  const e = s => String(s || '').replace(/[\\;,]/g, m => '\\' + m).replace(/\n/g, '\\n');
+  return ['BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//apotask//JP', 'BEGIN:VEVENT', `UID:${a.id}@apotask`, `DTSTAMP:${stamp(new Date().toISOString().slice(0,16))}`,
+    `DTSTART;TZID=Asia/Tokyo:${stamp(a.datetime)}`, `DTEND;TZID=Asia/Tokyo:${stamp(a.datetime, 60)}`, `SUMMARY:${e('【アポ】' + a.person + (a.company ? '(' + a.company + ')' : ''))}`,
+    `DESCRIPTION:${e(a.purpose ? '目的: ' + a.purpose : '')}`, `LOCATION:${e(a.place)}`,
+    'BEGIN:VALARM', 'TRIGGER:-P1D', 'ACTION:DISPLAY', 'DESCRIPTION:明日のアポ', 'END:VALARM', 'BEGIN:VALARM', 'TRIGGER:-PT1H', 'ACTION:DISPLAY', 'DESCRIPTION:1時間後のアポ', 'END:VALARM', 'END:VEVENT', 'END:VCALENDAR'].join('\r\n');
+}
+function downloadIcs(a) {
+  const url = URL.createObjectURL(new Blob([makeIcs(a)], { type: 'text/calendar' }));
+  const l = document.createElement('a'); l.href = url; l.download = 'appointment.ics'; l.click(); setTimeout(() => URL.revokeObjectURL(url), 5000);
+}
+
+/* ========== アラーム(前日・期限前日) ========== */
+async function notify(title, body, tag) {
+  toast('🔔 ' + title + ' ' + body, 6000);
+  if ('Notification' in window && Notification.permission === 'granted') {
+    try { const reg = await navigator.serviceWorker?.getRegistration(); if (reg) reg.showNotification(title, { body, tag, icon: 'icon-192.png' }); else new Notification(title, { body, tag }); } catch {}
+  }
+}
+function checkAlarms() {
+  const now = new Date(), h = S.settings.alarmHour;
+  let ch = false;
+  for (const a of S.appts) {
+    if (a.status === 'booked' && a.datetime) {
+      const at = new Date(a.datetime), eve = new Date(dayStart(a.datetime)); eve.setDate(eve.getDate() - 1); eve.setHours(h, 0, 0, 0);
+      if (now >= eve && now < at && !S.alarmed[a.id + ':eve']) { S.alarmed[a.id + ':eve'] = 1; ch = true; notify('明日のアポ', `${a.datetime.slice(11,16)} ${a.person}${a.purpose ? ' / ' + a.purpose : ''}`, a.id); }
+      const hr = new Date(at - 3600000);
+      if (now >= hr && now < at && !S.alarmed[a.id + ':hr']) { S.alarmed[a.id + ':hr'] = 1; ch = true; notify('まもなくアポ', `${a.datetime.slice(11,16)} ${a.person}`, a.id + 'h'); }
+    }
+    if (a.status === 'seeking' && a.deadline) {
+      const eve = new Date(dayStart(a.deadline)); eve.setDate(eve.getDate() - 1); eve.setHours(h, 0, 0, 0);
+      if (now >= eve && now < new Date(dayStart(a.deadline).getTime() + 86400000) && !S.alarmed[a.id + ':dl']) { S.alarmed[a.id + ':dl'] = 1; ch = true; notify('アポ取りの期限が明日です', `${a.person}さんへのアポ`, a.id + 'd'); }
+    }
+  }
+  if (ch) { save(false); render(); }
+}
+
+/* ========== タスク ========== */
+function taskRow(t) {
+  const over = !t.done && t.due && t.due < today();
+  const a = t.apptId && byId(S.appts, t.apptId);
+  return `<div class="card ${t.done ? 'done' : ''}"><div class="row"><button class="chk ${t.done ? 'on' : ''}" data-a="toggleTask" data-v="${t.id}">${t.done ? '✓' : ''}</button><div class="grow click" data-a="editTask" data-v="${t.id}"><div class="t">${esc(t.title)}</div><div class="s">${t.due ? `${fmtD(t.due)}(${rel(t.due)})` : '期限なし'}${a ? ' ・ ' + esc(a.person) : ''}</div></div>${over ? '<span class="badge ng">超過</span>' : ''}</div></div>`;
+}
+function vTasks() {
+  const open = S.tasks.filter(t => !t.done).sort((a, b) => (a.due || '9').localeCompare(b.due || '9'));
+  const done = S.tasks.filter(t => t.done).slice(-10).reverse();
+  return (open.length ? open.map(taskRow).join('') : '<div class="empty">タスクはありません</div>') + (done.length ? `<h2>完了</h2>` + done.map(taskRow).join('') : '');
+}
+function taskForm(id) {
+  const t = id ? byId(S.tasks, id) : { due: today() };
+  openModal(`<h3>${id ? 'タスクを編集' : 'タスクを追加'}</h3><label>内容</label><input id="f-title" value="${esc(t.title)}"><label>期限</label><input type="date" id="f-due" value="${esc(t.due)}">
+  <div class="bar"><button class="btn" data-a="saveTask" data-v="${id || ''}">保存</button><button class="btn ghost" data-a="close">キャンセル</button>${id ? `<button class="btn ng" data-a="delTask" data-v="${id}">削除</button>` : ''}</div>`);
+}
+
+/* ========== 連絡帳・名刺 ========== */
+function vContacts() {
+  const q = (ui.q || '').toLowerCase();
+  const list = S.contacts.filter(c => !q || (c.name + c.company + (c.email || '')).toLowerCase().includes(q)).sort((a, b) => (daysSince(lastTouch(b)) ?? -1) - (daysSince(lastTouch(a)) ?? -1));
+  return `<input id="q" placeholder="🔍 名前・会社で検索" value="${esc(ui.q)}" data-input="search"><div class="bar" style="margin:10px 0"><button class="btn" data-a="scanCard">📷 名刺を撮影して追加</button></div>` +
+    (list.length ? list.map(c => { const d = daysSince(lastTouch(c)); const f = daysSince(c.firstBooked || firstBooked(c)); return `<div class="card click" data-a="openContact" data-v="${c.id}"><div class="row">${c.img ? `<img class="thumb" src="${c.img}">` : ''}<div class="grow"><div class="t">${esc(c.name)}</div><div class="s">${esc(c.company)}${c.title ? ' ・ ' + esc(c.title) : ''}</div>${f !== null ? `<div class="s">アポ取得から${f}日</div>` : ''}</div>${d !== null ? `<span class="badge ${d >= 30 ? 'ng' : d >= 14 ? 'warn' : 'gray'}">最終接触${d}日前</span>` : ''}</div></div>`; }).join('') : '<div class="empty">連絡帳は空です<br>名刺を撮影するか、アポ登録で自動追加されます</div>');
+}
+function firstBooked(c) { return S.appts.filter(a => a.contactId === c.id && a.bookedAt).map(a => a.bookedAt).sort()[0] || null; }
+function contactDetail(id) {
+  const c = byId(S.contacts, id); if (!c) return;
+  const as = S.appts.filter(a => a.contactId === id).sort((a, b) => (b.datetime || b.deadline || '').localeCompare(a.datetime || a.deadline || ''));
+  const d = daysSince(lastTouch(c)), f = daysSince(firstBooked(c));
+  openModal(`<h3>${esc(c.name)}</h3><div class="s">${esc(c.company)}${c.title ? ' ・ ' + esc(c.title) : ''}</div>
+  ${c.img ? `<img src="${c.img}" style="width:100%;border-radius:10px;margin-top:10px">` : ''}
+  <div class="card" style="margin-top:10px"><div class="s">${f !== null ? `アポ取得日から <b>${f}日</b> 経過` : 'まだアポ未取得'}${d !== null ? `<br>最終接触から <b>${d}日</b> 経過` : ''}</div></div>
+  ${c.phone ? `<div>📞 <a href="tel:${esc(c.phone)}">${esc(c.phone)}</a></div>` : ''}${c.email ? `<div>✉️ <a href="mailto:${esc(c.email)}">${esc(c.email)}</a></div>` : ''}${c.address ? `<div class="s">📍 ${esc(c.address)}</div>` : ''}
+  ${c.memo ? `<div class="sum">${esc(c.memo)}</div>` : ''}
+  <div class="bar"><button class="btn" data-a="newApptFor" data-v="${id}">この人にアポを取る</button><button class="btn ghost" data-a="editContact" data-v="${id}">編集</button></div>
+  ${as.length ? `<h2>アポ履歴</h2>${as.map(apptCard).join('')}` : ''}
+  <div class="bar"><button class="btn ghost" data-a="close">閉じる</button></div>`);
+}
+function contactForm(id, pre) {
+  const c = Object.assign({}, id ? byId(S.contacts, id) : {}, pre || {});
+  const f = (k, l, ph = '') => `<label>${l}</label><input id="c-${k}" value="${esc(c[k])}" placeholder="${ph}">`;
+  openModal(`<h3>${id ? '連絡先を編集' : '連絡先を追加'}</h3>${c.img ? `<img src="${c.img}" style="width:100%;border-radius:10px">` : ''}
+  ${f('name', '氏名')}${f('company', '会社')}${f('title', '役職')}${f('phone', '電話')}${f('email', 'メール')}${f('address', '住所')}
+  <label>メモ</label><textarea id="c-memo" style="min-height:70px">${esc(c.memo)}</textarea>
+  <div class="bar"><button class="btn" data-a="saveContact" data-v="${id || ''}">保存</button><button class="btn ghost" data-a="close">キャンセル</button>${id ? `<button class="btn ng" data-a="delContact" data-v="${id}">削除</button>` : ''}</div>`);
+  ui.cardImg = c.img || '';
+}
+function scanCard() {
+  const inp = document.createElement('input'); inp.type = 'file'; inp.accept = 'image/*'; inp.capture = 'environment';
+  inp.onchange = async () => {
+    const file = inp.files[0]; if (!file) return;
+    openModal(`<h3>名刺を読み取り中…</h3><div class="s" id="ocr-st">画像を準備しています</div><div class="prog"><i id="ocr-bar"></i></div><div class="hint">初回は読み取りエンジンのダウンロードで少し時間がかかります</div>`);
+    try {
+      const big = await resizeImg(file, 1600, .9), small = await resizeImg(file, 480, .7);
+      const text = await ocr(big);
+      const data = parseCard(text); data.img = small;
+      contactForm(null, data); toast('読み取り結果を確認して保存してください');
+    } catch (e) { console.error(e); contactForm(null, {}); toast('読み取りに失敗しました。手入力してください'); }
+  };
+  inp.click();
+}
+function resizeImg(file, max, q) {
+  return new Promise((res, rej) => { const im = new Image(), u = URL.createObjectURL(file); im.onload = () => { const r = Math.min(1, max / Math.max(im.width, im.height)), c = document.createElement('canvas'); c.width = im.width * r; c.height = im.height * r; c.getContext('2d').drawImage(im, 0, 0, c.width, c.height); URL.revokeObjectURL(u); res(c.toDataURL('image/jpeg', q)); }; im.onerror = rej; im.src = u; });
+}
+let tessLoading;
+function loadTess() { return tessLoading || (tessLoading = new Promise((res, rej) => { if (window.Tesseract) return res(); const s = document.createElement('script'); s.src = 'https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js'; s.onload = res; s.onerror = () => rej(new Error('load')); document.head.appendChild(s); })); }
+async function ocr(img) {
+  await loadTess();
+  const r = await Tesseract.recognize(img, 'jpn+eng', { logger: m => { const b = $('#ocr-bar'), s = $('#ocr-st'); if (b && m.progress != null) b.style.width = Math.round(m.progress * 100) + '%'; if (s) s.textContent = m.status; } });
+  return r.data.text;
+}
+function parseCard(raw) {
+  const text = raw.replace(/[ 　]+/g, ' ');
+  const lines = text.split('\n').map(s => s.trim()).filter(Boolean);
+  const o = {};
+  o.email = (text.match(/[\w.+-]+@[\w-]+(\.[\w-]+)+/) || [''])[0];
+  const ph = lines.find(l => /(TEL|Tel|電話|携帯|Mobile|M\.?)[^\d]*\d/.test(l)) || lines.find(l => /\d{2,4}[-−ー]\d{2,4}[-−ー]\d{3,4}/.test(l));
+  if (ph) o.phone = (ph.match(/\+?\d[\d\-−ー() ]{8,}\d/) || [''])[0].replace(/[−ー]/g, '-').trim();
+  const ad = lines.find(l => /(〒|\d{3}-\d{4}|[都道府県].+[市区町村])/.test(l)); if (ad) o.address = ad;
+  o.company = lines.find(l => /(株式会社|有限会社|合同会社|\(株\)|（株）|Inc|Co\.|Ltd|Corp)/.test(l)) || '';
+  const tl = lines.find(l => /(代表|取締役|部長|課長|マネージャー|係長|主任|店長|営業|社長|Director|Manager|CEO)/.test(l) && l !== o.company && !/@|\d{3}/.test(l)); if (tl) o.title = tl;
+  const nm = lines.find(l => l !== o.company && l !== o.title && l !== o.address && !/@|\d|株式会社/.test(l) && /^[一-鿿぀-ヿA-Za-z]{1,6}( [一-鿿぀-ヿA-Za-z]{1,6})?$/.test(l) && l.replace(/ /g, '').length >= 2);
+  if (nm) o.name = nm.replace(/ /g, ' ');
+  o.memo = '';
+  return o;
+}
+
+/* ========== チーム共有 (Supabase) ========== */
+const SQL = `create table if not exists shared (
+  id text primary key,
+  project text not null,
+  kind text not null,
+  owner text not null,
+  data jsonb not null,
+  updated_at timestamptz default now()
+);
+alter table shared enable row level security;
+create policy "open" on shared for all using (true) with check (true);`;
+function sbOK() { const s = S.settings; return s.sbUrl && s.sbKey && s.project && s.name; }
+async function sb(path, opt = {}) {
+  const s = S.settings, r = await fetch(s.sbUrl.replace(/\/$/, '') + '/rest/v1/' + path, Object.assign({}, opt, { headers: Object.assign({ apikey: s.sbKey, Authorization: 'Bearer ' + s.sbKey, 'content-type': 'application/json' }, opt.headers) }));
+  if (!r.ok) throw new Error(await r.text()); return r.status === 204 ? null : r.json().catch(() => null);
+}
+let syncing = false;
+async function syncNow() {
+  if (!sbOK() || syncing || !navigator.onLine) return;
+  syncing = true; $('#sync').textContent = '同期中…';
+  try {
+    const s = S.settings, rows = [], removeIds = [];
+    for (const a of S.appts) { if (a.shared !== false && a.status !== 'done' || (a.shared !== false && a.status === 'done')) rows.push({ id: a.id, project: s.project, kind: 'appt', owner: s.name, data: { person: a.person, company: a.company, purpose: a.purpose, status: a.status, datetime: a.datetime, deadline: a.deadline, place: a.place }, updated_at: new Date().toISOString() }); else removeIds.push(a.id); }
+    for (const t of S.tasks) { if (t.shared !== false) rows.push({ id: t.id, project: s.project, kind: 'task', owner: s.name, data: { title: t.title, due: t.due, done: !!t.done }, updated_at: new Date().toISOString() }); else removeIds.push(t.id); }
+    for (const id of (S.deletedIds || [])) removeIds.push(id);
+    if (rows.length) await sb('shared?on_conflict=id', { method: 'POST', headers: { Prefer: 'resolution=merge-duplicates' }, body: JSON.stringify(rows) });
+    if (removeIds.length) { await sb(`shared?id=in.(${removeIds.map(encodeURIComponent).join(',')})&owner=eq.${encodeURIComponent(s.name)}`, { method: 'DELETE' }); S.deletedIds = []; }
+    S.team = await sb(`shared?project=eq.${encodeURIComponent(s.project)}&owner=neq.${encodeURIComponent(s.name)}&select=id,kind,owner,data,updated_at&order=updated_at.desc&limit=500`) || [];
+    S.lastSync = Date.now(); $('#sync').textContent = '同期 ' + new Date().toTimeString().slice(0, 5);
+    save(false); if (tab === 'team') render();
+  } catch (e) { console.error(e); $('#sync').textContent = '同期エラー'; ui.syncErr = String(e.message || e).slice(0, 200); }
+  syncing = false;
+}
+function vTeam() {
+  const s = S.settings;
+  let h = '';
+  if (!sbOK()) h += `<div class="banner">チーム共有はまだオフです。下の「共有の設定」を入力してください。</div>`;
+  else {
+    const members = [...new Set(S.team.map(x => x.owner))];
+    h += `<div class="card"><div class="t">プロジェクト「${esc(s.project)}」</div><div class="s">あなた: ${esc(s.name)} ・ メンバー ${members.length}名${ui.syncErr ? `<br><span style="color:var(--ng)">エラー: ${esc(ui.syncErr)}</span>` : ''}</div><div class="bar"><button class="btn sm sec" data-a="syncNow">今すぐ同期</button></div></div>`;
+    if (!S.team.length) h += `<div class="empty">まだ他のメンバーの予定・タスクはありません</div>`;
+    for (const m of members) {
+      const items = S.team.filter(x => x.owner === m);
+      const ap = items.filter(x => x.kind === 'appt' && x.data.status === 'booked' && x.data.datetime && x.data.datetime.slice(0, 10) >= today()).sort((a, b) => a.data.datetime.localeCompare(b.data.datetime)).slice(0, 8);
+      const tk = items.filter(x => x.kind === 'task' && !x.data.done).sort((a, b) => (a.data.due || '9').localeCompare(b.data.due || '9')).slice(0, 8);
+      h += `<h2>👤 ${esc(m)}</h2><div class="card"><div class="s">予定</div>${ap.length ? ap.map(x => `<div>${esc(fmtDT(x.data.datetime))} ${esc(x.data.person)}${x.data.company ? '<span class="s"> / ' + esc(x.data.company) + '</span>' : ''}</div>`).join('') : '<div class="s">なし</div>'}<div class="s" style="margin-top:8px">タスク</div>${tk.length ? tk.map(x => `<div>・${esc(x.data.title)} <span class="s">${x.data.due ? fmtD(x.data.due) : ''}</span></div>`).join('') : '<div class="s">なし</div>'}</div>`;
+    }
+  }
+  h += `<h2>共有の設定</h2><div class="card">
+   <label style="margin-top:0">あなたの名前(メンバーに表示)</label><input id="s-name" value="${esc(s.name)}">
+   <label>プロジェクト名(同じ名前を入れた人同士で共有)</label><input id="s-project" value="${esc(s.project)}" placeholder="例: 不動産A案件">
+   <label>共有サーバー URL(Supabase)</label><input id="s-sbUrl" value="${esc(s.sbUrl)}" placeholder="https://xxxx.supabase.co">
+   <label>共有サーバー キー(anon public)</label><input id="s-sbKey" value="${esc(s.sbKey)}">
+   <details style="margin-top:10px"><summary class="s">Supabaseの準備方法(1回だけ)</summary><div class="s" style="margin:8px 0">1. supabase.com で無料プロジェクトを作成 → SQL Editor に下記を貼って実行<br>2. Project Settings → API の URL と anon key をここに入力<br>3. 同じ内容をメンバー全員のアプリに設定</div><pre>${esc(SQL)}</pre></details>
+   <div class="hint">共有されるのは「アポの相手・日時・目的」と「タスク名・期限」のみ。面談メモ・要約・名刺は共有されません。</div>
+  </div>
+  <h2>アラーム・AI</h2><div class="card">
+   <label style="margin-top:0">前日アラームの時刻</label><select id="s-alarmHour">${[7,8,9,12,17,18,19,20,21].map(h => `<option value="${h}" ${+s.alarmHour===h?'selected':''}>${h}:00</option>`).join('')}</select>
+   <label>Claude APIキー(任意・AI要約用)</label><input id="s-aiKey" type="password" value="${esc(s.aiKey)}" placeholder="sk-ant-...">
+   <div class="hint">未入力でも簡易要約で動きます。キーはこの端末にだけ保存されます。</div>
+  </div>
+  <div class="bar"><button class="btn" data-a="saveSettings">設定を保存</button><button class="btn sec" data-a="askNotif">通知を許可</button><button class="btn ghost" data-a="exportData">バックアップ</button></div><div style="height:20px"></div>`;
+  return h;
+}
+
+/* ========== モーダル/トースト ========== */
+function openModal(h) { $('#sheet').innerHTML = h; $('#modal').classList.add('open'); $('#sheet').scrollTop = 0; }
+function closeModal() { $('#modal').classList.remove('open'); }
+let tt;
+function toast(m, ms = 2500) { let t = $('#toast'); if (!t) { t = document.createElement('div'); t.id = 'toast'; t.style.cssText = 'position:fixed;left:50%;transform:translateX(-50%);bottom:calc(90px + env(safe-area-inset-bottom));background:#111c;color:#fff;padding:10px 16px;border-radius:12px;z-index:30;max-width:90%;font-size:14px'; document.body.appendChild(t); } t.textContent = m; t.style.display = 'block'; clearTimeout(tt); tt = setTimeout(() => t.style.display = 'none', ms); }
+
+/* ========== イベント ========== */
+const A = {
+  tab: v => { tab = v; render(); window.scrollTo(0, 0); },
+  fab: () => tab === 'appts' ? apptForm() : tab === 'tasks' ? taskForm() : contactForm(),
+  close: closeModal,
+  apptFilter: v => { apptFilter = v; render(); },
+  openAppt: v => apptDetail(v), editAppt: v => apptForm(v), saveAppt: v => saveApptFromForm(v),
+  delAppt: v => { if (!confirm('このアポを削除しますか?')) return; (S.deletedIds ||= []).push(v); S.appts = S.appts.filter(a => a.id !== v); save(); closeModal(); render(); },
+  markBooked: v => { const a = byId(S.appts, v); a.status = 'booked'; a.bookedAt = today(); save(false); apptForm(v); toast('日時と場所を入力してください'); },
+  markDone: v => { const a = byId(S.appts, v); a.notes = $('#f-notes')?.value ?? a.notes; a.status = 'done'; save(); closeModal(); render(); toast('完了にしました'); },
+  gcal: v => { window.open(gcalUrl(byId(S.appts, v)), '_blank'); },
+  ics: v => downloadIcs(byId(S.appts, v)),
+  summarize: v => summarize(v),
+  addNext: v => { const [id, i] = v.split(':'); addNext(id, +i); save(); apptDetail(id); },
+  addAllNext: v => { byId(S.appts, v).nextTasks.forEach((t, i) => { if (!t.added) addNext(v, i); }); save(); apptDetail(v); toast('タスクに追加しました'); },
+  toggleTask: v => { const t = byId(S.tasks, v); t.done = !t.done; save(); render(); },
+  editTask: v => taskForm(v),
+  saveTask: v => { const title = $('#f-title').value.trim(); if (!title) return toast('内容を入力してください'); let t = v ? byId(S.tasks, v) : { id: uid(), owner: S.settings.name, shared: true }; t.title = title; t.due = $('#f-due').value; if (!v) S.tasks.push(t); save(); closeModal(); render(); },
+  delTask: v => { (S.deletedIds ||= []).push(v); S.tasks = S.tasks.filter(t => t.id !== v); save(); closeModal(); render(); },
+  openContact: v => contactDetail(v), editContact: v => contactForm(v), scanCard,
+  newApptFor: v => { closeModal(); apptForm(); const c = byId(S.contacts, v); $('#f-contact').value = v; $('#f-person').value = c.name; $('#f-company').value = c.company || ''; },
+  saveContact: v => {
+    const g = k => $('#c-' + k).value.trim(); if (!g('name')) return toast('氏名を入力してください');
+    let c = v ? byId(S.contacts, v) : { id: uid(), createdAt: today(), metAt: today() };
+    Object.assign(c, { name: g('name'), company: g('company'), title: g('title'), phone: g('phone'), email: g('email'), address: g('address'), memo: g('memo') });
+    if (ui.cardImg) c.img = ui.cardImg; if (!v) S.contacts.push(c); save(false); closeModal(); render(); toast('連絡帳に保存しました');
+  },
+  delContact: v => { if (!confirm('この連絡先を削除しますか?')) return; S.contacts = S.contacts.filter(c => c.id !== v); save(false); closeModal(); render(); },
+  saveSettings: () => { const s = S.settings; for (const k of ['name', 'project', 'sbUrl', 'sbKey', 'aiKey']) s[k] = $('#s-' + k).value.trim(); s.alarmHour = +$('#s-alarmHour').value; S.alarmed = {}; save(false); toast('設定を保存しました'); syncNow(); setTimeout(render, 300); },
+  askNotif: async () => { if (!('Notification' in window)) return toast('この端末は通知に未対応です(iPhoneはホーム画面に追加すると使えます)'); const r = await Notification.requestPermission(); toast(r === 'granted' ? '通知をオンにしました' : '通知が許可されませんでした'); render(); },
+  syncNow: () => syncNow(),
+  exportData: () => { const url = URL.createObjectURL(new Blob([JSON.stringify(S, null, 2)], { type: 'application/json' })); const l = document.createElement('a'); l.href = url; l.download = `apotask-backup-${today()}.json`; l.click(); }
+};
+function addNext(id, i) { const a = byId(S.appts, id), n = a.nextTasks[i]; if (n.added) return; S.tasks.push({ id: uid(), title: n.title, due: n.due, apptId: id, owner: S.settings.name, shared: true }); n.added = true; }
+const ACT = { pickContact: el => { const c = byId(S.contacts, el.value); if (c) { $('#f-person').value = c.name; $('#f-company').value = c.company || ''; } },
+  statusChg: el => { $('#f-seek').style.display = el.value === 'seeking' ? 'block' : 'none'; $('#f-book').style.display = el.value === 'seeking' ? 'none' : 'block'; } };
+document.addEventListener('click', e => {
+  if (e.target.id === 'modal') return closeModal();
+  const el = e.target.closest('[data-a]'); if (!el) return;
+  A[el.dataset.a]?.(el.dataset.v);
+});
+document.addEventListener('change', e => { const f = e.target.dataset.change; if (f) ACT[f](e.target); });
+document.addEventListener('input', e => { if (e.target.dataset.input === 'search') { ui.q = e.target.value; const p = e.target.selectionStart; render(); const n = $('#q'); n.focus(); n.setSelectionRange(p, p); } });
+
+/* ========== 起動 ========== */
+if ('serviceWorker' in navigator && location.protocol.startsWith('http')) navigator.serviceWorker.register('sw.js').catch(() => {});
+render(); checkAlarms(); syncNow();
+setInterval(checkAlarms, 30000);
+setInterval(syncNow, 60000);
+document.addEventListener('visibilitychange', () => { if (!document.hidden) { checkAlarms(); syncNow(); render(); } });
+</script>
+</body>
+</html>
